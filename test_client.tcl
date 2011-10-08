@@ -1,4 +1,4 @@
-source socks.tcl
+source socks5.tcl
 
 set proxy_ip "localhost"
 set proxy_port "1080"
