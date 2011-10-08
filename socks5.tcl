@@ -5,8 +5,8 @@ package provide socks5 0.1
 namespace eval ::socks5 { 
    namespace export configure bind connect
 
-   array set config {proxy {} proxyport 1080}
-   set options [list -proxy -proxyport]
+   array set config {proxy {} proxyport 1080 bindtimeout 2000}
+   set options [list -proxy -proxyport -bindtimeout]
 
    array set response_codes {
       00 "succeeded"
@@ -43,6 +43,8 @@ proc ::socks5::configure {args} {
 }
 
 proc ::socks5::bind {host port callback} {
+   variable config
+
    set cmd [binary format H2H2H2 05 02 00]
    append cmd [FormatAddress $host $port]
 
@@ -58,7 +60,10 @@ proc ::socks5::bind {host port callback} {
       return -code error $result
    }
 
-   chan event $sock readable [list ::socks5::BindCallback $sock $callback]
+   set timeout_id [after $config(bindtimeout) \
+      [list ::socks5::BindCallback timeout {} $sock $callback]]
+   chan event $sock readable \
+      [list ::socks5::BindCallback readable $timeout_id $sock $callback]
 
    return $result
 }
@@ -82,12 +87,19 @@ proc ::socks5::connect {host port} {
    return $sock
 }
 
-proc ::socks5::BindCallback {sock callback} {
-   if {[catch {ReadResponse $sock} result]} {
+proc ::socks5::BindCallback {reason timeout_id sock callback} {
+   after cancel $timeout_id
+
+   if {$reason eq "timeout"} {
       chan close $sock
-      eval $callback error $result
+      uplevel #0 [list $callback timeout "timeout occurred while waiting for connection"]
    } else {
-      eval $callback ok $sock
+      if {[catch {ReadResponse $sock} result]} {
+         chan close $sock
+         uplevel #0 [list $callback error $result]
+      } else {
+         uplevel #0 [list $callback ok $sock]
+      }
    }
 }
 
