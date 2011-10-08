@@ -1,3 +1,6 @@
+#!/bin/sh
+# This line continues for Tcl, but is a single line for 'sh' \
+exec tclsh "$0" ${1+"$@"}
 set listen_port "30000"
 
 set cntrl ""
