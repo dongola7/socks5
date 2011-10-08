@@ -24,9 +24,10 @@ proc ::socks5::bind {host port callback} {
       return -code error $sock
    }
 
-   puts -nonewline $sock [binary format H2H2H2H2c 05 02 00 03 [string bytelength $host]]
-   puts -nonewline $sock $host
-   puts -nonewline $sock [binary format S $port]
+   set cmd [binary format H2H2H2 05 02 00]
+   append cmd [FormatAddress $host $port]
+
+   puts -nonewline $sock $cmd
    flush $sock
 
    if {[catch {ReadResponse $sock} result]} {
@@ -39,6 +40,26 @@ proc ::socks5::bind {host port callback} {
    return $result
 }
 
+proc ::socks5::connect {host port} {
+
+   if {[catch {ProxyConnect} sock]} {
+      return -code error $sock
+   }
+
+   set cmd [binary format H2H2H2 05 01 00]
+   append cmd [FormatAddress $host $port]
+
+   puts -nonewline $sock $cmd
+   flush $sock
+
+   if {[catch {ReadResponse $sock} msg]} {
+      chan close $sock
+      return -code error $msg
+   }
+
+   return $sock
+}
+
 proc ::socks5::BindCallback {sock callback} {
    if {[catch {ReadResponse $sock} result]} {
       chan close $sock
@@ -48,23 +69,17 @@ proc ::socks5::BindCallback {sock callback} {
    }
 }
 
-proc ::socks5::connect {host port} {
-
-   if {[catch {ProxyConnect} sock]} {
-      return -code error $sock
+proc ::socks5::FormatAddress {host port} {
+   if {[regexp -- {^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$} $host]} {
+      set parts [split $host .]
+      set result [eval binary format H2ccccS 01 $parts $port]
+   } else {
+      set result [binary format H2c 03 [string bytelength $host]]
+      append result $host
+      append result [binary format S $port]
    }
 
-   puts -nonewline $sock [binary format H2H2H2H2c 05 01 00 03 [string bytelength $host]]
-   puts -nonewline $sock $host
-   puts -nonewline $sock [binary format S $port]
-   flush $sock
-
-   if {[catch {ReadResponse $sock} msg]} {
-      chan close $sock
-      return -code error $msg
-   }
-
-   return $sock
+   return $result
 }
 
 proc ::socks5::ReadResponse {sock} {
