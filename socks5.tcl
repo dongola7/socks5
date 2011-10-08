@@ -19,6 +19,13 @@ namespace eval ::socks5 {
       07 "command not supported"
       08 "address type not supported"
    }
+
+   array set method_codes {
+      00 "no authentication required"
+      01 "gssapi"
+      02 "username/password"
+      FF "no acceptable methods"
+   }
 }
 
 proc ::socks5::configure {args} {
@@ -105,10 +112,10 @@ proc ::socks5::ReadResponse {sock} {
    binary scan $rsp H2H2xH2 version reply addr_type
    if {$reply != "00"} {
       if {[info exists response_codes($reply)]} {
-         return -code error "error from proxy server: $response_codes($reply) ($reply)"
+         return -code error "error from proxy: $response_codes($reply) ($reply)"
       }
 
-      return -code error "error from proxy server: $reply"
+      return -code error "error from proxy: $reply"
    }
 
 
@@ -124,7 +131,7 @@ proc ::socks5::ReadResponse {sock} {
       set port [binary scan S [read $sock 2]]
       set result [list $host $port]
    } else {
-      return -code error "invalid address type from proxy server: $addr_type"
+      return -code error "invalid address type from proxy: $addr_type"
    }
 
    return $result
@@ -132,6 +139,7 @@ proc ::socks5::ReadResponse {sock} {
 
 proc ::socks5::ProxyConnect { } {
    variable config
+   variable method_codes
 
    if {$config(proxy) eq {} || $config(proxyport) eq {}} { 
       return -code error "no proxy or proxy port specified"
@@ -150,7 +158,12 @@ proc ::socks5::ProxyConnect { } {
       return -code error "unsupported version: $version"
    } elseif {$method != "00"} {
       chan close $sock
-      return -code error "unsupported method: $method"
+
+      if {[info exists method_codes($method)]} {
+         return -code error "unsupported method from proxy: $method_codes($method) ($method)"
+      }
+
+      return -code error "unsupported method from proxy: $method"
    }
 
    return $sock
