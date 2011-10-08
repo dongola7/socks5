@@ -1,6 +1,10 @@
 package require Tcl 8.5
 
+package provide socks5 0.1
+
 namespace eval ::socks5 { 
+   namespace export configure bind connect
+
    array set config {proxy {} proxyport 1080}
    set options [list -proxy -proxyport]
 
@@ -151,5 +155,3 @@ proc ::socks5::ProxyConnect { } {
 
    return $sock
 }
-   
-package provide socks5 0.1
