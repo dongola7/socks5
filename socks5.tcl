@@ -3,6 +3,18 @@ package require Tcl 8.5
 namespace eval ::socks5 { 
    array set config {proxy {} proxyport 1080}
    set options [list -proxy -proxyport]
+
+   array set response_codes {
+      00 "succeeded"
+      01 "general SOCKS server failure"
+      02 "connection not allowed by ruleset"
+      03 "network unreachable"
+      04 "host unreachable"
+      05 "connection refused"
+      06 "TTL expired"
+      07 "command not supported"
+      08 "address type not supported"
+   }
 }
 
 proc ::socks5::configure {args} {
@@ -83,11 +95,16 @@ proc ::socks5::FormatAddress {host port} {
 }
 
 proc ::socks5::ReadResponse {sock} {
+   variable response_codes
 
    set rsp [read $sock 4]
    binary scan $rsp H2H2xH2 version reply addr_type
    if {$reply != "00"} {
-      return -code error "invalid reply: $reply"
+      if {[info exists response_codes($reply)]} {
+         return -code error "error from proxy server: $response_codes($reply) ($reply)"
+      }
+
+      return -code error "error from proxy server: $reply"
    }
 
 
@@ -103,7 +120,7 @@ proc ::socks5::ReadResponse {sock} {
       set port [binary scan S [read $sock 2]]
       set result [list $host $port]
    } else {
-      return -code error "invalid address type: $addr_type"
+      return -code error "invalid address type from proxy server: $addr_type"
    }
 
    return $result
