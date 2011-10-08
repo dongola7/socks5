@@ -1,9 +1,26 @@
 package require Tcl 8.5
 
-namespace eval ::socks5 { }
+namespace eval ::socks5 { 
+   array set config {proxy {} proxyport 1080}
+   set options [list -proxy -proxyport]
+}
 
-proc ::socks5::bind {proxy proxyport host port callback} {
-   if {[catch {ProxyConnect $proxy $proxyport} sock]} {
+proc ::socks5::configure {args} {
+   variable config
+   variable options
+
+   foreach {option value} $args {
+      set normalized_option [string range [lsearch -regexp -inline $options $option] 1 end]
+      if {$normalized_option eq ""} {
+         return -code error "invalid option $option"
+      }
+
+      set config($normalized_option) $value
+   }
+}
+
+proc ::socks5::bind {host port callback} {
+   if {[catch {ProxyConnect} sock]} {
       return -code error $sock
    }
 
@@ -31,9 +48,9 @@ proc ::socks5::BindCallback {sock callback} {
    }
 }
 
-proc ::socks5::connect {proxy proxyport host port} {
+proc ::socks5::connect {host port} {
 
-   if {[catch {ProxyConnect $proxy $proxyport} sock]} {
+   if {[catch {ProxyConnect} sock]} {
       return -code error $sock
    }
 
@@ -77,8 +94,14 @@ proc ::socks5::ReadResponse {sock} {
    return $result
 }
 
-proc ::socks5::ProxyConnect {proxy proxyport} {
-   set sock [socket $proxy $proxyport]
+proc ::socks5::ProxyConnect { } {
+   variable config
+
+   if {$config(proxy) eq {} || $config(proxyport) eq {}} { 
+      return -code error "no proxy or proxy port specified"
+   }
+
+   set sock [socket $config(proxy) $config(proxyport)]
    fconfigure $sock -translation binary -encoding binary -blocking 1
 
    puts -nonewline $sock [binary format H2H2H2 05 01 00]

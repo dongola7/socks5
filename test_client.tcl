@@ -15,12 +15,14 @@ proc HandleConnect {result arg} {
    set ::data $arg
 }
 
+::socks5::configure -proxy $proxy_ip -proxyport $proxy_port
+
 puts "Attempting CNTRL connection to $server_ip:$server_port using proxy $proxy_ip:$proxy_port"
-set cntrl [::socks5::connect $proxy_ip $proxy_port $server_ip $server_port]
+set cntrl [::socks5::connect $server_ip $server_port]
 puts "CNTRL connection established"
 
 puts "Attempting to create SOCKS5 binding for DATA connection"
-set bind_info [::socks5::bind $proxy_ip $proxy_port $server_ip $server_port HandleConnect]
+set bind_info [::socks5::bind $server_ip $server_port HandleConnect]
 foreach {host port} $bind_info break
 puts "SOCKS server listening for DATA connection on $host:$port"
 
