@@ -43,12 +43,12 @@ proc ::socks5::configure {args} {
 }
 
 proc ::socks5::bind {host port callback} {
+   set cmd [binary format H2H2H2 05 02 00]
+   append cmd [FormatAddress $host $port]
+
    if {[catch {ProxyConnect} sock]} {
       return -code error $sock
    }
-
-   set cmd [binary format H2H2H2 05 02 00]
-   append cmd [FormatAddress $host $port]
 
    puts -nonewline $sock $cmd
    flush $sock
@@ -64,13 +64,12 @@ proc ::socks5::bind {host port callback} {
 }
 
 proc ::socks5::connect {host port} {
+   set cmd [binary format H2H2H2 05 01 00]
+   append cmd [FormatAddress $host $port]
 
    if {[catch {ProxyConnect} sock]} {
       return -code error $sock
    }
-
-   set cmd [binary format H2H2H2 05 01 00]
-   append cmd [FormatAddress $host $port]
 
    puts -nonewline $sock $cmd
    flush $sock
@@ -97,6 +96,10 @@ proc ::socks5::FormatAddress {host port} {
       set parts [split $host .]
       set result [eval binary format H2ccccS 01 $parts $port]
    } else {
+      if {[string bytelength $host] > 255} {
+         return -code error "host must be 255 characters or less"
+      }
+
       set result [binary format H2c 03 [string bytelength $host]]
       append result $host
       append result [binary format S $port]
