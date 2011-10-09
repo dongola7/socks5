@@ -106,7 +106,7 @@ proc ::socks5::BindCallback {reason timeout_id sock callback} {
 proc ::socks5::FormatAddress {host port} {
    if {[regexp -- {^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$} $host]} {
       set parts [split $host .]
-      set result [eval binary format H2ccccS 01 $parts $port]
+      set result [binary format H2ccccS 01 {*}$parts $port]
    } else {
       if {[string bytelength $host] > 255} {
          return -code error "host must be 255 characters or less"
