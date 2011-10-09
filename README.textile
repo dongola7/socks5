@@ -1,12 +1,10 @@
 h1. socks5 Package
 
-A simple SOCKS 5 client written in Tcl that supports both the BIND and CONNECT
-commands.
+A simple SOCKS 5 client written in Tcl that supports both the BIND and CONNECT commands.
 
 h1. Known Limitations
 
-The library does not currently support any authentication mechanisms.  The library
-also does not support IPv6.
+The library does not currently support any authentication mechanisms.  The library also does not support IPv6.
 
 h1. License
 
@@ -14,8 +12,7 @@ This program is released under the "BSD":http://creativecommons.org/licenses/BSD
 
 h1. Usage
 
-The socks5 library is distributed as a Tcl package and can be loaded using the 
-@package require@ command:
+The socks5 library is distributed as a Tcl package and can be loaded using the @package require@ command:
 
 <pre><code>package require socks5 0.1</code></pre>
 
@@ -23,8 +20,7 @@ h2. socks5::configure
 
 Usage: @socks5::configure <args>@
 
-Use @socks5::configure@ to configure the library for operations.  The following options
-are available:
+Use @socks5::configure@ to configure the library for operations.  The following options are available:
 
 |_. Option |_. Description |
 | @-proxy@ | IP or hostname for the proxy server |
@@ -49,13 +45,9 @@ h2. socks5::bind
 
 Usage: @socks5::bind <host> <port> <callback>@
 
-Requests the proxy open a TCP port for listening and wait for an incoming connection
-from the specified host and port.
+Requests the proxy open a TCP port for listening and wait for an incoming connection from the specified host and port.
 
-The @callback@ parameter will be evaluated at the global scope when the incoming 
-connection is established.  Two parameters will be appended.  The first indicates the
-type of response from the proxy, while the second depends on the response.  The
-following table identifies expected response codes.
+The @callback@ parameter will be evaluated at the global scope when the incoming connection is established.  Two parameters will be appended.  The first indicates the type of response from the proxy, while the second depends on the response.  The following table identifies expected response codes.
 
 |_. Response |_. Argument | _. Description |
 | @ok@ | channel handle | Indicates an incoming connection was esablished. The channel handle may be used to communicate with the remote host. |
