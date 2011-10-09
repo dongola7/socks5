@@ -56,4 +56,15 @@ The @callback@ parameter will be evaluated at the global scope when the incoming
 
 Example:
 
-<pre><code>socks5::bind ftp.cdrom.com 21 handle_connect</code></pre>
+<pre><code>proc handle_connect {result arg} {
+   if {$result eq "ok"} {
+      puts "connection established via channel $arg"
+   } elseif {$result eq "timeout"} {
+      puts "timeout expired while waiting for connection"
+   } elseif {$result eq "error"} {
+      puts "error from proxy while waiting for connection: $arg"
+   }
+}
+
+socks5::bind ftp.cdrom.com 21 handle_connect
+</code></pre>
