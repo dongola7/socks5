@@ -1,13 +1,14 @@
 #!/bin/sh
 # This line continues for Tcl, but is a single line for 'sh' \
 exec tclsh "$0" ${1+"$@"}
-source socks5.tcl
-
 set proxy_ip "localhost"
 set proxy_port "1080"
 set server_host "localhost"
 set server_ip "127.0.0.1"
 set server_port "30000"
+
+set root [file join [file dirname [info script]] ..]
+source [file join $root socks5.tcl]
 
 set data ""
 proc HandleConnect {result arg} {

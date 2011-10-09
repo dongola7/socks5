@@ -3,6 +3,9 @@
 exec tclsh "$0" ${1+"$@"}
 set listen_port "30000"
 
+set root [file join [file dirname [info script]] ..]
+source [file join $root socks5.tcl]
+
 set cntrl ""
 
 proc HandleConnect {cntrl addr port} {
