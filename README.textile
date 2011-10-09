@@ -49,7 +49,7 @@ Requests the proxy open a TCP port for listening and wait for an incoming connec
 
 The @callback@ parameter will be evaluated at the global scope when the incoming connection is established.  Two parameters will be appended.  The first indicates the type of response from the proxy, while the second depends on the response.  The following table identifies expected response codes.
 
-|_. Response |_. Argument | _. Description |
+|_. Response |_. Argument |_. Description |
 | @ok@ | channel handle | Indicates an incoming connection was esablished. The channel handle may be used to communicate with the remote host. |
 | @timeout@ | error message | Indicates the @-bindtimeout@ expired while waiting for an incoming connection. |
 | @error@ | error message | Indicates some sort of error occurred with the proxy.  The error message provides further details. |
