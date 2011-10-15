@@ -125,11 +125,11 @@ proc ::socks5::FormatAddress {host port} {
       set parts [split $host .]
       set result [binary format H2ccccS 01 {*}$parts $port]
    } else {
-      if {[string bytelength $host] > 255} {
+      if {[string length $host] > 255} {
          return -code -1 "host must be 255 characters or less"
       }
 
-      set result [binary format H2c 03 [string bytelength $host]]
+      set result [binary format H2c 03 [string length $host]]
       append result $host
       append result [binary format S $port]
    }
@@ -141,6 +141,10 @@ proc ::socks5::ReadResponse {sock} {
    variable response_codes
 
    set rsp [read $sock 4]
+   if {[string length $rsp] != 4} {
+      return -code -1 "unable to read response from proxy"
+   }
+
    binary scan $rsp H2H2xH2 version reply addr_type
    if {$reply != "00"} {
       if {[info exists response_codes($reply)]} {
@@ -177,13 +181,21 @@ proc ::socks5::ProxyConnect { } {
       return -code -1 "no proxy or proxy port specified"
    }
 
-   set sock [socket $config(proxy) $config(proxyport)]
+   set errorCode [catch {socket $config(proxy) $config(proxyport)} sock]
+   if {$errorCode != 0} {
+      return -code -1 "unable to connect to proxy: $sock"
+   }
    fconfigure $sock -translation binary -encoding binary -blocking 1
 
    puts -nonewline $sock [binary format H2H2H2 05 01 00]
    flush $sock
 
    set rsp [read $sock 2]
+   if {[string length $rsp] != 2} {
+      chan close $sock
+      return -code -1 "unable to read handshake response from proxy"
+   }
+
    binary scan $rsp H2H2 version method
    if {$version != "05"} {
       chan close $sock
