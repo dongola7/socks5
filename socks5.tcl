@@ -48,16 +48,24 @@ proc ::socks5::bind {host port callback} {
    set cmd [binary format H2H2H2 05 02 00]
    append cmd [FormatAddress $host $port]
 
-   if {[catch {ProxyConnect} sock]} {
+   set errorCode [catch {ProxyConnect} sock]
+   if {$errorCode == -1} {
       return -code error $sock
+   } elseif {$errorCode != 0} {
+      return -code $errorCode -errorinfo $::errorInfo $sock
    }
 
    puts -nonewline $sock $cmd
    flush $sock
 
-   if {[catch {ReadResponse $sock} result]} {
+   set errorCode [catch {ReadResponse $sock} result]
+   if {$errorCode != 0} {
       chan close $sock
-      return -code error $result
+      if {$errorCode == -1} {
+         return -code error $result
+      } else {
+         return -code $errorCode -errorinfo $::errorInfo $result
+      }
    }
 
    set timeout_id [after $config(bindtimeout) \
@@ -72,16 +80,25 @@ proc ::socks5::connect {host port} {
    set cmd [binary format H2H2H2 05 01 00]
    append cmd [FormatAddress $host $port]
 
-   if {[catch {ProxyConnect} sock]} {
+   set errorCode [catch {ProxyConnect} sock]
+   if {$errorCode == -1} {
       return -code error $sock
+   } elseif {$errorCode != 0} {
+      return -code $errorCode -errorinfo $::errorInfo $sock
    }
 
    puts -nonewline $sock $cmd
    flush $sock
 
-   if {[catch {ReadResponse $sock} msg]} {
+
+   set errorCode [catch {ReadResponse $sock} msg]
+   if {$errorCode != 0} {
       chan close $sock
-      return -code error $msg
+      if {$errorCode == -1} {
+         return -code error $msg
+      } else {
+         return -code $errorCode -errorinfo $::errorInfo
+      }
    }
 
    return $sock
@@ -109,7 +126,7 @@ proc ::socks5::FormatAddress {host port} {
       set result [binary format H2ccccS 01 {*}$parts $port]
    } else {
       if {[string bytelength $host] > 255} {
-         return -code error "host must be 255 characters or less"
+         return -code -1 "host must be 255 characters or less"
       }
 
       set result [binary format H2c 03 [string bytelength $host]]
@@ -127,10 +144,10 @@ proc ::socks5::ReadResponse {sock} {
    binary scan $rsp H2H2xH2 version reply addr_type
    if {$reply != "00"} {
       if {[info exists response_codes($reply)]} {
-         return -code error "error from proxy: $response_codes($reply) ($reply)"
+         return -code -1 "error from proxy: $response_codes($reply) ($reply)"
       }
 
-      return -code error "error from proxy: $reply"
+      return -code -1 "error from proxy: $reply"
    }
 
 
@@ -146,7 +163,7 @@ proc ::socks5::ReadResponse {sock} {
       set port [binary scan S [read $sock 2]]
       set result [list $host $port]
    } else {
-      return -code error "invalid address type from proxy: $addr_type"
+      return -code -1 "invalid address type from proxy: $addr_type"
    }
 
    return $result
@@ -157,7 +174,7 @@ proc ::socks5::ProxyConnect { } {
    variable method_codes
 
    if {$config(proxy) eq {} || $config(proxyport) eq {}} { 
-      return -code error "no proxy or proxy port specified"
+      return -code -1 "no proxy or proxy port specified"
    }
 
    set sock [socket $config(proxy) $config(proxyport)]
@@ -170,15 +187,15 @@ proc ::socks5::ProxyConnect { } {
    binary scan $rsp H2H2 version method
    if {$version != "05"} {
       chan close $sock
-      return -code error "unsupported version: $version"
+      return -code -1 "unsupported version: $version"
    } elseif {$method != "00"} {
       chan close $sock
 
       if {[info exists method_codes($method)]} {
-         return -code error "unsupported method from proxy: $method_codes($method) ($method)"
+         return -code -1 "unsupported method from proxy: $method_codes($method) ($method)"
       }
 
-      return -code error "unsupported method from proxy: $method"
+      return -code -1 "unsupported method from proxy: $method"
    }
 
    return $sock
