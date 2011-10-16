@@ -140,12 +140,12 @@ proc ::socks5::FormatAddress {host port} {
 proc ::socks5::ReadResponse {sock} {
    variable response_codes
 
-   set rsp [read $sock 4]
-   if {[string length $rsp] != 4} {
+   set rsp [read $sock 3]
+   if {[string length $rsp] != 3} {
       return -code -1 "unable to read response from proxy"
    }
 
-   binary scan $rsp H2H2xH2 version reply addr_type
+   binary scan $rsp H2H2x version reply
    set reply [string tolower $reply]
    if {$reply != "00"} {
       if {[info exists response_codes($reply)]} {
@@ -155,6 +155,9 @@ proc ::socks5::ReadResponse {sock} {
       return -code -1 "error from proxy: $reply"
    }
 
+   set rsp [read $sock 1]
+   binary scan $rsp H2 addr_type
+   set addr_type [string tolower $addr_type]
 
    if {$addr_type == "01"} {
       set rsp [read $sock 6]
