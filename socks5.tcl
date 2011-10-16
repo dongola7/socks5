@@ -24,7 +24,7 @@ namespace eval ::socks5 {
       00 "no authentication required"
       01 "gssapi"
       02 "username/password"
-      FF "no acceptable methods"
+      ff "no acceptable methods"
    }
 }
 
@@ -146,6 +146,7 @@ proc ::socks5::ReadResponse {sock} {
    }
 
    binary scan $rsp H2H2xH2 version reply addr_type
+   set reply [string tolower $reply]
    if {$reply != "00"} {
       if {[info exists response_codes($reply)]} {
          return -code -1 "error from proxy: $response_codes($reply) ($reply)"
@@ -197,6 +198,7 @@ proc ::socks5::ProxyConnect { } {
    }
 
    binary scan $rsp H2H2 version method
+   set method [string tolower $method]
    if {$version != "05"} {
       chan close $sock
       return -code -1 "unsupported version: $version"
