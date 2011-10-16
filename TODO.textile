@@ -1,4 +1,4 @@
 h1. TODO List
 
-* Implement support for username/password authentication
+* Test support for username/password authentication
 * Implement support for UDP ASSOCIATE (not sure if this is really necessary since Tcl doesn't really handle UDP data) 

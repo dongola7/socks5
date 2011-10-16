@@ -4,7 +4,9 @@ A simple SOCKS 5 client written in Tcl that supports both the BIND and CONNECT c
 
 h1. Known Limitations
 
-The library does not currently support any authentication mechanisms.  The library also does not support IPv6.
+* No support for IPv6
+* Support for username/password authentication only
+* No support for @UDP ASSOCIATE@ command
 
 h1. License
 
@@ -26,6 +28,8 @@ Use @socks5::configure@ to configure the library for operations.  The following 
 | @-proxy@ | IP or hostname for the proxy server |
 | @-proxyport@ | Port number on which the proxy server operates (default: 1080) |
 | @-bindtimeout@ | Timeout (in milliseconds) when waiting for an incoming connection via @socks5::bind@ |
+| @-username@ | Username (for username/password authentication) (default: <NONE>) |
+| @-password@ | Password (for username/password authentication) (default: <NONE>) |
 
 Example:
 
