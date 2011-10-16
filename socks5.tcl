@@ -9,22 +9,22 @@ namespace eval ::socks5 {
    foreach key [array names config] { lappend options "-$key" }
 
    array set response_codes {
-      00 "succeeded"
-      01 "general SOCKS server failure"
-      02 "connection not allowed by ruleset"
-      03 "network unreachable"
-      04 "host unreachable"
-      05 "connection refused"
-      06 "TTL expired"
-      07 "command not supported"
-      08 "address type not supported"
+      0 "succeeded"
+      1 "general SOCKS server failure"
+      2 "connection not allowed by ruleset"
+      3 "network unreachable"
+      4 "host unreachable"
+      5 "connection refused"
+      6 "TTL expired"
+      7 "command not supported"
+      8 "address type not supported"
    }
 
    array set method_codes {
-      00 "no authentication required"
-      01 "gssapi"
-      02 "username/password"
-      ff "no acceptable methods"
+      0 "no authentication required"
+      1 "gssapi"
+      2 "username/password"
+      255 "no acceptable methods"
    }
 }
 
@@ -45,7 +45,7 @@ proc ::socks5::configure {args} {
 proc ::socks5::bind {host port callback} {
    variable config
 
-   set cmd [binary format H2H2H2 05 02 00]
+   set cmd [binary format ccc 5 2 0]
    append cmd [FormatAddress $host $port]
 
    set errorCode [catch {ProxyConnect} sock]
@@ -77,7 +77,7 @@ proc ::socks5::bind {host port callback} {
 }
 
 proc ::socks5::connect {host port} {
-   set cmd [binary format H2H2H2 05 01 00]
+   set cmd [binary format ccc 5 1 0]
    append cmd [FormatAddress $host $port]
 
    set errorCode [catch {ProxyConnect} sock]
@@ -123,13 +123,13 @@ proc ::socks5::BindCallback {reason timeout_id sock callback} {
 proc ::socks5::FormatAddress {host port} {
    if {[regexp -- {^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$} $host]} {
       set parts [split $host .]
-      set result [binary format H2ccccS 01 {*}$parts $port]
+      set result [binary format cccccS 1 {*}$parts $port]
    } else {
       if {[string length $host] > 255} {
          return -code -1 "host must be 255 characters or less"
       }
 
-      set result [binary format H2ca*S 03 [string length $host] $host $port]
+      set result [binary format cca*S 3 [string length $host] $host $port]
    }
 
    return $result
@@ -143,9 +143,8 @@ proc ::socks5::ReadResponse {sock} {
       return -code -1 "unable to read response from proxy"
    }
 
-   binary scan $rsp H2H2x version reply
-   set reply [string tolower $reply]
-   if {$reply != "00"} {
+   binary scan $rsp ccx version reply
+   if {$reply != 0} {
       if {[info exists response_codes($reply)]} {
          return -code -1 "error from proxy: $response_codes($reply) ($reply)"
       }
@@ -154,14 +153,13 @@ proc ::socks5::ReadResponse {sock} {
    }
 
    set rsp [read $sock 1]
-   binary scan $rsp H2 addr_type
-   set addr_type [string tolower $addr_type]
+   binary scan $rsp c addr_type
 
-   if {$addr_type == "01"} {
+   if {$addr_type == 1} {
       set rsp [read $sock 6]
       binary scan $rsp "cucucucuSu" ip1 ip2 ip3 ip4 port
       set result [list "$ip1.$ip2.$ip3.$ip4" $port]
-   } elseif {$addr_type == "03"} {
+   } elseif {$addr_type == 3} {
       set len [read $sock 1]
       set len [binary scan $len c]
       
@@ -206,15 +204,14 @@ proc ::socks5::ProxyConnect { } {
       return -code -1 "unable to read handshake response from proxy"
    }
 
-   binary scan $rsp H2H2 version method
-   set method [string tolower $method]
-   if {$version != "05"} {
+   binary scan $rsp cc version method
+   if {$version != 5} {
       chan close $sock
       return -code -1 "unsupported version: $version"
-   } elseif {$method == "ff"} {
+   } elseif {$method == 255} {
       chan close $sock
       return -code -1 "unsupported method from proxy: $method_codes($method) ($method)"
-   } elseif {$method == "05"} {
+   } elseif {$method == 5} {
       PerformUserPassAuth $sock
    }
 
@@ -245,8 +242,11 @@ proc ::socks5::PerformUserPassAuth {sock} {
       return -code -1 "unable to read auth response from proxy"
    }
 
-   binary scan H2H2 $rsp version reply
-   if {$reply != "00"} {
+   binary scan cc $rsp version reply
+   if {$version != 1} {
+      chan close $sock
+      return -code -1 "unsupported username/password auth version ($version)"
+   } elseif {$reply != 0} {
       chan close $sock
       return -code -1 "proxy denied presented auth tokens"
    }
