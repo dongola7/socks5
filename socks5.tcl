@@ -129,9 +129,7 @@ proc ::socks5::FormatAddress {host port} {
          return -code -1 "host must be 255 characters or less"
       }
 
-      set result [binary format H2c 03 [string length $host]]
-      append result $host
-      append result [binary format S $port]
+      set result [binary format H2ca*S 03 [string length $host] $host $port]
    }
 
    return $result
