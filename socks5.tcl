@@ -5,8 +5,8 @@ package provide socks5 0.1
 namespace eval ::socks5 { 
    namespace export configure bind connect
 
-   array set config {proxy {} proxyport 1080 bindtimeout 2000}
-   set options [list -proxy -proxyport -bindtimeout]
+   array set config {proxy {} proxyport 1080 bindtimeout 2000 username {} password {}}
+   foreach key [array names config] { lappend options "-$key" }
 
    array set response_codes {
       00 "succeeded"
@@ -189,7 +189,15 @@ proc ::socks5::ProxyConnect { } {
    }
    fconfigure $sock -translation binary -encoding binary -blocking 1
 
-   puts -nonewline $sock [binary format H2H2H2 05 01 00]
+   set numMethods 1
+   set methods [list 0]
+
+   if {$config(username) != {} || $config(password) != {}} {
+      incr numMethods
+      lappend methods 5
+   }
+
+   puts -nonewline $sock [binary format ccc* 5 $numMethods $methods]
    flush $sock
 
    set rsp [read $sock 2]
@@ -203,15 +211,45 @@ proc ::socks5::ProxyConnect { } {
    if {$version != "05"} {
       chan close $sock
       return -code -1 "unsupported version: $version"
-   } elseif {$method != "00"} {
+   } elseif {$method == "ff"} {
       chan close $sock
-
-      if {[info exists method_codes($method)]} {
-         return -code -1 "unsupported method from proxy: $method_codes($method) ($method)"
-      }
-
-      return -code -1 "unsupported method from proxy: $method"
+      return -code -1 "unsupported method from proxy: $method_codes($method) ($method)"
+   } elseif {$method == "05"} {
+      PerformUserPassAuth $sock
    }
 
    return $sock
+}
+
+proc ::socks5::PerformUserPassAuth {sock} {
+   variable config
+
+   if {[string length $config(username)] > 255]} {
+      chan close $sock
+      return -code -1 "username must be 255 characters or less"
+   }
+
+   if {[string length $config(password)] > 255]} {
+      chan close $sock
+      return -code -1 "password must be 255 characters or less"
+   }
+
+   puts -nonewline $sock [binary scan cca*ca* 1 \
+      [string length $config(username)] $config(username) \
+      [string length $config(password)] $config(password)]
+   flush $sock
+
+   set rsp [read $sock 2]
+   if {[string length $rsp] != 2} {
+      chan close $sock
+      return -code -1 "unable to read auth response from proxy"
+   }
+
+   binary scan H2H2 $rsp version reply
+   if {$reply != "00"} {
+      chan close $sock
+      return -code -1 "proxy denied presented auth tokens"
+   }
+
+   return
 }

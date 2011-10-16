@@ -20,7 +20,7 @@ proc HandleConnect {result arg} {
    set ::data $arg
 }
 
-::socks5::configure -proxy $proxy_ip -proxyport $proxy_port
+::socks5::configure -proxy $proxy_ip -proxyport $proxy_port -username foo -password bar
 
 foreach server [list $server_host $server_ip] {
    puts "Attempting CNTRL connection to $server:$server_port using proxy $proxy_ip:$proxy_port"
