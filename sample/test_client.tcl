@@ -1,6 +1,17 @@
 #!/bin/sh
 # This line continues for Tcl, but is a single line for 'sh' \
 exec tclsh "$0" ${1+"$@"}
+
+# test_client.tcl --
+#
+#   Implements a simple TCP client program utilizing the SOCKS 5 library
+#
+# Copyright (c) 2011 Blair Kitchen
+#
+# See the file "license.terms" for information on usage and
+# redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+#
+
 set proxyIP "localhost"
 set proxyPort "1080"
 set serverHost "localhost"

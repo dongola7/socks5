@@ -1,3 +1,13 @@
+# socks5.tcl --
+#
+#   Tcl implementation of a SOCKS 5 client
+#
+# Copyright (c) 2011 Blair Kitchen
+#
+# See the file "license.terms" for information on usage and
+# redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+#
+
 package require Tcl 8.5
 
 package provide socks5 0.1

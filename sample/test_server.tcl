@@ -1,6 +1,17 @@
 #!/bin/sh
 # This line continues for Tcl, but is a single line for 'sh' \
 exec tclsh "$0" ${1+"$@"}
+
+# socks5.tcl --
+#
+#   Implements a simple TCP server for use with test_client.tcl
+#
+# Copyright (c) 2011 Blair Kitchen
+#
+# See the file "license.terms" for information on usage and
+# redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+#
+
 set listenPort "30000"
 
 set root [file join [file dirname [info script]] ..]
