@@ -1,42 +1,42 @@
 #!/bin/sh
 # This line continues for Tcl, but is a single line for 'sh' \
 exec tclsh "$0" ${1+"$@"}
-set listen_port "30000"
+set listenPort "30000"
 
 set root [file join [file dirname [info script]] ..]
 source [file join $root socks5.tcl]
 
 set cntrl ""
 
-proc HandleConnect {cntrl addr port} {
-   puts "CNTRL connection from $addr:$port"
-   set host [gets $cntrl]
-   set port [gets $cntrl]
+proc handleConnect {cntrl addr port} {
+    puts "CNTRL connection from $addr:$port"
+    set host [gets $cntrl]
+    set port [gets $cntrl]
 
-   puts "Attempting DATA connection to $host:$port"
-   set data [socket $host $port]
-   puts "DATA connection established"
+    puts "Attempting DATA connection to $host:$port"
+    set data [socket $host $port]
+    puts "DATA connection established"
 
-   fconfigure $cntrl -blocking 0 -translation binary -encoding binary
-   fconfigure $data -blocking 0 -translation binary -encoding binary
-   fileevent $cntrl readable [list HandleRead $cntrl $data]
-   fileevent $data readable [list HandleRead $data $cntrl]
+    fconfigure $cntrl -blocking 0 -translation binary -encoding binary
+    fconfigure $data -blocking 0 -translation binary -encoding binary
+    fileevent $cntrl readable [list handleRead $cntrl $data]
+    fileevent $data readable [list handleRead $data $cntrl]
 }
 
-proc HandleRead {src dst} {
-   if {[eof $src]} {
-      close $src
-      close $dst
-      puts "Client disconnected"
-      return
-   }
+proc handleRead {src dst} {
+    if {[eof $src]} {
+        close $src
+        close $dst
+        puts "Client disconnected"
+        return
+    }
 
-   puts "Echoing data"
-   set data [read $src]
-   puts -nonewline $dst $data
-   flush $dst
+    puts "Echoing data"
+    set data [read $src]
+    puts -nonewline $dst $data
+    flush $dst
 }
 
-set server_sock [socket -server HandleConnect $listen_port]
-puts "Listening for CNTRL connections on port $listen_port"
+set server_sock [socket -server handleConnect $listenPort]
+puts "Listening for CNTRL connections on port $listenPort"
 vwait forever

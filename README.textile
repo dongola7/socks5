@@ -47,11 +47,11 @@ Example:
 
 h2. socks5::bind
 
-Usage: @socks5::bind <host> <port> <callback>@
+Usage: @socks5::bind <host> <port> <command>@
 
 Requests the proxy open a TCP port for listening and wait for an incoming connection from the specified host and port.
 
-The @callback@ parameter will be evaluated at the global scope when the incoming connection is established.  Two parameters will be appended.  The first indicates the type of response from the proxy, while the second depends on the response.  The following table identifies expected response codes.
+The @command@ parameter will be evaluated at the global scope when the incoming connection is established.  Two parameters will be appended.  The first indicates the type of response from the proxy, while the second depends on the response.  The following table identifies expected response codes.
 
 |_. Response |_. Argument |_. Description |
 | @ok@ | channel handle | Indicates an incoming connection was esablished. The channel handle may be used to communicate with the remote host. |
