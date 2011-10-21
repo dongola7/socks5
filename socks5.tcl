@@ -48,6 +48,16 @@ namespace eval ::socks5 {
     }
 }
 
+# ::socks5::configure
+#
+#   Configures the SOCKS 5 client library
+#
+# Arguments:
+#   args    List of parameters to configure (see ::socks5::Config for list)
+#
+# Results:
+#   None
+#
 proc ::socks5::configure {args} {
     variable Config
     variable Options
@@ -62,6 +72,26 @@ proc ::socks5::configure {args} {
     }
 }
 
+# ::socks5::bind
+#
+#   Requests the SOCKS 5 server open a port for listening and await a
+#   connection from the specified host and port.
+#
+# Arguments:
+#   host    The hostname or IP from which a connection will be established
+#   port    The port number from which a connection will be established
+#   command Command that will be executed when the connection is established
+#
+# Results:
+#   List consisting of IP and port on the proxy server opened and listening
+#   for an incoming connection
+#
+#   command is executed when the connection is established and two arguments
+#   appended.  The first is the success indication and is one of: ok, timeout,
+#   or error.  The second is an argument related to the success indicator.  For
+#   ok, it is the channel handle on which communication may take place.  For
+#   error and timeout, it is an error message.
+#
 proc ::socks5::bind {host port command} {
     variable Config
 
@@ -96,6 +126,19 @@ proc ::socks5::bind {host port command} {
     return $result
 }
 
+# ::socks5::connect
+#
+#   Requests the SOCKS 5 server establish an outgoing connection to
+#   the named host on the named port.
+#
+# Arguments:
+#   host    The hostname or IP to which a connection should be established
+#   port    The port number to which a connection should be established
+#
+# Results:
+#   Returns a channel handle to the socket used for communication.
+#   The channel is ready for normal use when returned.
+#
 proc ::socks5::connect {host port} {
     set cmd [binary format ccc 5 1 0]
     append cmd [FormatAddress $host $port]
@@ -124,6 +167,21 @@ proc ::socks5::connect {host port} {
     return $sock
 }
 
+# ::sock5::BindCallback
+#
+#   Callback procedure registered by ::socks5::bind on the
+#   SOCKS 5 client socket for the readable event.
+#
+# Arguments:
+#   reason  The reason the callback is firing (timeout or else)
+#   timeout_id  after callback identifier for cancelling the timeout event
+#   sock    Channel handle to the open socket
+#   command User command for callback (passed to ::socks5::bind)
+#
+# Results:
+#   Calls "command" in the global namespace to provide information
+#   to the user logic.
+#
 proc ::socks5::BindCallback {reason timeout_id sock command} {
     after cancel $timeout_id
 
@@ -140,6 +198,19 @@ proc ::socks5::BindCallback {reason timeout_id sock command} {
     }
 }
 
+# ::socks5::FormatAddress
+#
+#   Formats a hostname and port into the format defined by the SOCKS 5
+#   specification.
+#
+# Arguments:
+#   host    The hostname or IP address
+#   port    The port number
+#
+# Results:
+#   Returns the hostname/IP and port number formatted as a binary message
+#   for transmission to the SOCKS 5 server.
+#
 proc ::socks5::FormatAddress {host port} {
     if {[regexp -- {^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$} $host]} {
         set parts [split $host .]
@@ -155,6 +226,18 @@ proc ::socks5::FormatAddress {host port} {
     return $result
 }
 
+# ::socks5::ReadResponse
+#
+#   Reads a SOCKS 5 server response message from the given channel handle.
+#
+# Arguments:
+#   sock    The channel handle from which to read
+#
+# Results:
+#   Returns an error if there is a problem reading the response.  Otherwise
+#   returns a two element list consisting of the hostname/IP and port number
+#   from the response.
+#
 proc ::socks5::ReadResponse {sock} {
     variable ResponseCodes
 
@@ -193,6 +276,21 @@ proc ::socks5::ReadResponse {sock} {
     return $result
 }
 
+#
+# ::socks5::ProxyConnect
+#
+#   Helper procedure to connect and perform handshaking with a SOCKS 5 proxy 
+#   server.  The proxy server address and port are taken from the global
+#   configuration and may be specified via a call to ::socks5::configure.
+#
+# Arguments:
+#   None
+#
+# Results:
+#   Returns a channel handle to the open connection on success.  Returns an
+#   error otherwise.  The channel is authenticated and ready for use in SOCKS 5
+#   client requests on return.
+#
 proc ::socks5::ProxyConnect { } {
     variable Config
     variable MethodCodes
@@ -238,6 +336,18 @@ proc ::socks5::ProxyConnect { } {
     return $sock
 }
 
+# ::socks5::PerformUserPassAuth
+#
+#   Performs username/password authentication on the given channel.  The
+#   username and password are taken from the global configuration and may
+#   be specified via a call to ::socks5::configure.
+#
+# Arguments:
+#   sock    The socket on which to perform authentication
+#
+# Results:
+#   Returns an error on authentication failure.
+#
 proc ::socks5::PerformUserPassAuth {sock} {
     variable Config
 
