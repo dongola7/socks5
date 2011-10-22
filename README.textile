@@ -12,6 +12,33 @@ h1. License
 
 This program is released under the "BSD":http://creativecommons.org/licenses/BSD/ license.
 
+h1. Sample
+
+The @socks5@ package can be used to SOCKS enable the @http@ package.  This is useful for passing all http requests through the "Tor":https://torproject.org network, for example.  Assuming you have Tor running on your local system and listening for connections on port 9050, the following sample code demonstrates how to enable http use of Tor.
+
+<pre><code>package require Tcl 8.5
+package require socks5
+package require tls 1.6
+package require http 2.7
+
+proc httpsConnect {host port} {
+    # Establish connection with SOCKS 5
+    set sock [::socks5::connect $host $port]
+    # Enable SSL on open socket
+    ::tls::import $sock
+    return $sock
+}
+
+http::register http 80 ::socks5::connect
+http::register https 443 ::httpsConnect
+
+socks5::configure -proxy localhost -port 9050
+
+# Retrieve check.torproject.org to confirm we are using Tor
+set token [http::geturl "https://check.torproject.org" -channel stdout]
+http::cleanup $token
+</code></pre>
+
 h1. Usage
 
 The socks5 library is distributed as a Tcl package and can be loaded using the @package require@ command:
