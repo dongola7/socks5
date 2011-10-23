@@ -9,6 +9,7 @@
 #
 
 package require Tcl 8.5
+package require cmdline 1.3
 
 package provide socks5 0.1
 
@@ -21,11 +22,6 @@ namespace eval ::socks5 {
         bindtimeout 2000 
         username {} 
         password {}
-    }
-
-    set Options [list]
-    foreach key [array names Config] { 
-        lappend Options "-$key" 
     }
 
     array set ResponseCodes {
@@ -60,15 +56,32 @@ namespace eval ::socks5 {
 #
 proc ::socks5::configure {args} {
     variable Config
-    variable Options
 
-    foreach {option value} $args {
-        set normalized_option [string range [lsearch -regexp -inline $Options $option] 1 end]
-        if {$normalized_option eq ""} {
-            return -code error "invalid option $option"
+    set options [list proxy.arg \
+        proxyport.arg \
+        bindtimeout.arg \
+        username.arg \
+        password.arg]
+
+    while {[::cmdline::getopt args $options option value] == 1} {
+        switch -- $option {
+            proxyport {
+                if {($value <= 0) || ($value >= 65565)} {
+                    return -code error "proxyport requires a value between 1 and 65565"
+                }
+            }
+            bindtimeout {
+                if {($value < 0)} {
+                    return -code error "bindtimeout requires a value greater than 1"
+                }
+            }
         }
 
-        set Config($normalized_option) $value
+        set Config($option) $value
+    }
+
+    if {[llength $args] > 0} {
+        return -code error "unknown option '[lindex $args 0]'"
     }
 }
 
