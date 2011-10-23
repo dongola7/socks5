@@ -91,6 +91,8 @@ proc ::socks5::configure {args} {
 #   connection from the specified host and port.
 #
 # Arguments:
+#   options List of options to pass to the socket call
+#           ?-myaddr addr? ?-myport port?
 #   host    The hostname or IP from which a connection will be established
 #   port    The port number from which a connection will be established
 #   command Command that will be executed when the connection is established
@@ -105,18 +107,24 @@ proc ::socks5::configure {args} {
 #   ok, it is the channel handle on which communication may take place.  For
 #   error and timeout, it is an error message.
 #
-proc ::socks5::bind {host port command} {
+proc ::socks5::bind {args} {
     variable Config
 
-    set cmd [binary format ccc 5 2 0]
-    append cmd [FormatAddress $host $port]
-
-    set errorCode [catch {ProxyConnect} sock]
+    set errorCode [catch {ProxyConnect args} sock]
     if {$errorCode == -1} {
         return -code error $sock
     } elseif {$errorCode != 0} {
         return -code $errorCode -errorinfo $::errorInfo $sock
     }
+
+    if {[llength $args] != 3} {
+        return -code "wrong # args: should be \"bind ?-myaddr addr? ?-myport myport? host port command"
+    }
+
+    lassign $args host port command
+
+    set cmd [binary format ccc 5 2 0]
+    append cmd [FormatAddress $host $port]
 
     puts -nonewline $sock $cmd
     flush $sock
@@ -145,6 +153,8 @@ proc ::socks5::bind {host port command} {
 #   the named host on the named port.
 #
 # Arguments:
+#   options List of options to pass to the socket call
+#           ?-myaddr addr? ?-myport port?
 #   host    The hostname or IP to which a connection should be established
 #   port    The port number to which a connection should be established
 #
@@ -152,16 +162,22 @@ proc ::socks5::bind {host port command} {
 #   Returns a channel handle to the socket used for communication.
 #   The channel is ready for normal use when returned.
 #
-proc ::socks5::connect {host port} {
-    set cmd [binary format ccc 5 1 0]
-    append cmd [FormatAddress $host $port]
-
-    set errorCode [catch {ProxyConnect} sock]
+proc ::socks5::connect {args} {
+    set errorCode [catch {ProxyConnect args} sock]
     if {$errorCode == -1} {
         return -code error $sock
     } elseif {$errorCode != 0} {
         return -code $errorCode -errorinfo $::errorInfo $sock
     }
+
+    if {[llength $args] != 2} {
+        return -code "wrong # args: should be \"connect ?-myaddr addr? ?-myport myport? host port command"
+    }
+
+    lassign $args host port
+
+    set cmd [binary format ccc 5 1 0]
+    append cmd [FormatAddress $host $port]
 
     puts -nonewline $sock $cmd
     flush $sock
@@ -297,14 +313,15 @@ proc ::socks5::ReadResponse {sock} {
 #   configuration and may be specified via a call to ::socks5::configure.
 #
 # Arguments:
-#   None
+#   args    List of arguments to pass to the socket call 
+#           ?-myaddr addr? ?-myport port?
 #
 # Results:
 #   Returns a channel handle to the open connection on success.  Returns an
 #   error otherwise.  The channel is authenticated and ready for use in SOCKS 5
 #   client requests on return.
 #
-proc ::socks5::ProxyConnect { } {
+proc ::socks5::ProxyConnect { argsVar } {
     variable Config
     variable MethodCodes
 
@@ -312,7 +329,19 @@ proc ::socks5::ProxyConnect { } {
         return -code -1 "no proxy or proxy port specified"
     }
 
-    set errorCode [catch {socket $Config(proxy) $Config(proxyport)} sock]
+    # Parse the command line options for socket related options.  Leave the
+    # remaining arguments for the parent
+    upvar $argsVar args
+    set socketOptions [list]
+    while {[set result [cmdline::getopt args {myaddr.arg myport.arg} option value]] == 1} {
+        lappend socketOptions "-$option" $value
+    }
+
+    if {$result == -1} {
+        return -code -1 "unknown option '[lindex $args 0]'"
+    }
+
+    set errorCode [catch {socket {*}$socketOptions $Config(proxy) $Config(proxyport)} sock]
     if {$errorCode != 0} {
         return -code -1 "unable to connect to proxy: $sock"
     }

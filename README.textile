@@ -64,7 +64,7 @@ Example:
 
 h2. socks5::connect
 
-Usage: @socks5::connect <host> <port>@
+Usage: @socks5::connect ?-myaddr addr? ?-myport port? <host> <port>@
 
 Establishes a connection with a remote host through the configured proxy.
 
@@ -74,7 +74,7 @@ Example:
 
 h2. socks5::bind
 
-Usage: @socks5::bind <host> <port> <command>@
+Usage: @socks5::bind ?-myaddr addr? ?-myport port? <host> <port> <command>@
 
 Requests the proxy open a TCP port for listening and wait for an incoming connection from the specified host and port.
 
