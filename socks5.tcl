@@ -11,7 +11,7 @@
 package require Tcl 8.5
 package require cmdline 1.3
 
-package provide socks5 0.1
+package provide socks5 1.0
 
 namespace eval ::socks5 { 
     namespace export configure bind connect

@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded socks5 0.1 [list source [file join $dir socks5.tcl]]
+package ifneeded socks5 1.0 [list source [file join $dir socks5.tcl]]
