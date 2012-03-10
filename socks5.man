@@ -1,0 +1,165 @@
+[manpage_begin socks5 n 1.0]
+[copyright {2012 Blair Kitchen <blair@the-blair.com>}]
+[moddesc {Networking}]
+[moddesc {Implements client support for SOCKS 5 proxies}]
+[require Tcl 8.5]
+[require socks5 [opt 1.0]]
+[description]
+[para]
+
+This package provides routines for connecting to remote servers via a SOCKS 5
+proxy server.  Support for both CONNECT and BIND methods is included.
+
+[section COMMANDS]
+
+[list_begin definitions]
+
+[call [cmd ::socks5::configure] [opt [arg options]]]
+
+Configure the library for use by specifying information such as the proxy
+server, port number, etc.
+
+[list_begin definitions]
+[def "[cmd -proxy] [arg hostname]"] 
+    [term Hostname] specifies the domain-style name or numerical IP address
+    of the proxy server.
+[def "[cmd -proxyport] [arg port]"]
+    [term Port] specifies an integer port number on which the proxy server
+    will respond to incoming requests.
+[def "[cmd -bindtimeout] [arg timeout]"]
+    [term Timeout] specifies a timeout (in milliseconds) when waiting for 
+    an incoming connection via [cmd ::socks5::bind]
+[def "[cmd -username] [arg username]"]
+    [term Username] specifies the username to be used when the proxy
+    server requires username/password authentication.  Providing an empty
+    value for this option disables the use of authentication.
+[def "[cmd -password] [arg password]"]
+    [term Password] specifies the password to be used when the proxy
+    server requires username/password authentication.  Providing an empty
+    value for this option disables the use of authentication.
+[list_end]
+
+[para]
+The following example illustrates use of the [cmd ::socks5::configure] command.
+
+[example {::socks5::configure -proxy localhost -proxyport 1080 -bindtimeout 2000}]
+
+[para]
+[call [cmd ::socks5::connect] [opt [arg options]] [arg hostname] [arg port]]
+
+Establishes a connection with a remote host through the configured proxy
+
+[list_begin definitions]
+[def "[cmd -myaddr] [arg addr]"]
+    [term Addr] gives the domain-style name or numerical IP address of the 
+    client-side network interface to use for the connection.  This option 
+    may be useful if the client machine has multiple network interfaces.
+    If the option is omitted then the client-side interface will be chosen
+    by the system software.
+[def "[cmd -myport] [arg port]"]
+    [term Port] specifies an integer port number (or service name, where
+    supported and understood by the host operating system) to use for the
+    client's side of the connection.  If this option is omitted, the client's
+    port number will be chosen at random by the system software.
+[list_end]
+
+[para]
+The following example illustrates use of the [cmd ::socks5::connect] command.
+
+[example {::socks5::connect www.google.com 80}]
+
+[para]
+[call [cmd ::socks5::bind] [opt [arg options]] [arg hostname] [arg port] [arg command]]
+
+Requests the proxy open a TCP port for listening and wait for an incoming
+connection from the specified host and port. [term Hostname] gives the 
+anticipated domain-style name or numerical IP address of the incoming
+connection.  [term Port] specifies the integer port number of the incoming
+connection.
+
+[para]
+The [term command] parameter will be evaluated at the global scope when the
+incoming connection is established.  Two parameters will be appended.  The
+first indicates the type of response from the proxy, while the second depends
+on the response.
+
+[list_begin definitions]
+[def "[cmd -myaddr] [arg addr]"]
+    [term Addr] gives the domain-style name or numerical IP address of the
+    client-side network interface to use for the connection.  This option
+    may be useful if the client machine has multiple network interfaces.
+    If the option is omitted then the client-side interface will be chosen
+    by the system software.
+[def "[cmd -myport] [arg port]"]
+    [term Port] specifies an integer port number (or service name, where
+    supported and understood by the host operating system) to use for the
+    client's side of the connection.  If this option is omitted, the client's
+    port number will be chosen at random by the system software.
+[list_end]
+
+[para]
+The following example illustrates use of the [cmd ::socks5::bind] command.
+
+[example {
+proc handle_connect {result arg} {
+    if {$result eq "ok"} {
+        puts "connection established via channel $arg"
+    } elseif {$result eq "timeout"} {
+        puts "timeout expired while waiting for connection"
+    } elseif {$result eq "error"} {
+        puts "error from proxy while waiting for connection: $arg"
+    }
+}
+
+::socks5::bind ftp.cdrom.com 21 handle_connect
+}]
+
+[list_end]
+
+[section EXAMPLES]
+The [term socks5] package can be used to SOCKS enable the [term http] package.
+This is useful for passing all HTTP requests through the Tor network, for
+example.  Assuming you have Tor running on your local system and listening for
+connections on port 9050, the following sample code demonstrates how to enable
+http use of Tor.
+
+[example {
+package require Tcl 8.5
+package require tls 1.6
+package require http 2.7
+package require socks5
+
+proc httpsConnect {host port} {
+    # Establish connection with SOCKS 5
+    set sock [::socks5::connect $host $port]
+    # Enable SSL on open socket
+    ::tls::import $sock
+    return $sock
+}
+
+::http::register http 80 ::socks5::connect
+::http::register https 443 ::httpsConnect
+
+::socks5::configure -proxy localhost -port 9050
+
+# Retrieve https://check.torproject.org to confirm we are using Tor
+set token [::http::geturl "https://check.torproject.org" -channel stdout]
+::http::cleanup $token
+}]
+
+[section "KNOWN LIMITATIONS"]
+The following known limitations exist:
+
+[list_begin bullet]
+[bullet] No support for IPv6
+[bullet] Support for username/password authentication only
+[bullet] No support for the UDP ASSOCIATE command
+[list_end]
+
+[section LICENSE]
+This software is released under the BSD license.
+
+[section BUGS]
+Please report all bugs online at [uri https://github.com/dongola7/socks5/issues].
+
+[manpage_end]
