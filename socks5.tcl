@@ -333,8 +333,16 @@ proc ::socks5::ProxyConnect { argsVar } {
     # remaining arguments for the parent
     upvar $argsVar args
     set socketOptions [list]
-    while {[set result [cmdline::getopt args {myaddr.arg myport.arg} option value]] == 1} {
-        lappend socketOptions "-$option" $value
+    while {[set result [cmdline::getopt args {myaddr.arg myport.arg async} option value]] == 1} {
+        switch -- $option {
+            myaddr -
+            myport {
+                lappend socketOptions "-$option" $value
+            }
+            async {
+                lappend socketOptions "-$option"
+            }
+        }
     }
 
     if {$result == -1} {
