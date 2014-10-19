@@ -24,8 +24,9 @@ package require http 2.7
 proc httpsConnect {host port} {
     # Establish connection with SOCKS 5
     set sock [::socks5::connect $host $port]
-    # Enable SSL on open socket
-    ::tls::import $sock
+    # Enable SSL on open socket (make sure we're using tls rather
+    # than ssl3)
+    ::tls::import $sock -tls1 1
     return $sock
 }
 
