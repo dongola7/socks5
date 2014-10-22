@@ -27,15 +27,16 @@ proc httpsConnect {args} {
     lassign [lrange $args end-1 end] host port
     # Establish connection with SOCKS 5
     set sock [::socks5::connect {*}$opts $host $port]
-    # Enable SSL on open socket
-    ::tls::import $sock
+    # Enable SSL on open socket (make sure we're using tls rather
+    # than ssl3)
+    ::tls::import $sock -tls1 1
     return $sock
 }
 
 http::register http 80 ::socks5::connect
 http::register https 443 ::httpsConnect
 
-socks5::configure -proxy localhost -port 9050
+socks5::configure -proxy localhost -proxyport 9050
 
 # Retrieve check.torproject.org to confirm we are using Tor
 set token [http::geturl "https://check.torproject.org" -channel stdout]
