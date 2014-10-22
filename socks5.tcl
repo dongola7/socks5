@@ -339,9 +339,6 @@ proc ::socks5::ProxyConnect { argsVar } {
             myport {
                 lappend socketOptions "-$option" $value
             }
-            async {
-                lappend socketOptions "-$option"
-            }
         }
     }
 
