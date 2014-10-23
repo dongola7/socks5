@@ -21,9 +21,12 @@ package require socks5
 package require tls 1.6
 package require http 2.7
 
-proc httpsConnect {host port} {
+proc httpsConnect {args} {
+    # Separate options from mandatory arguments
+    set opts [lrange $args 0 end-2]
+    lassign [lrange $args end-1 end] host port
     # Establish connection with SOCKS 5
-    set sock [::socks5::connect $host $port]
+    set sock [::socks5::connect {*}$opts $host $port]
     # Enable SSL on open socket (make sure we're using tls rather
     # than ssl3)
     ::tls::import $sock -tls1 1
@@ -65,7 +68,7 @@ Example:
 
 h2. socks5::connect
 
-Usage: @socks5::connect ?-myaddr addr? ?-myport port? <host> <port>@
+Usage: @socks5::connect ?-async? ?-myaddr addr? ?-myport port? <host> <port>@
 
 Establishes a connection with a remote host through the configured proxy.
 
