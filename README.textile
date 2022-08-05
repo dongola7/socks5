@@ -4,7 +4,6 @@ A simple SOCKS 5 client written in Tcl that supports both the BIND and CONNECT c
 
 h1. Known Limitations
 
-* No support for IPv6
 * Support for username/password authentication only
 * No support for @UDP ASSOCIATE@ command
 
