@@ -10,6 +10,7 @@
 
 package require Tcl 8.5
 package require cmdline 1.3
+package require ip
 
 package provide socks5 1.0
 
@@ -241,9 +242,12 @@ proc ::socks5::BindCallback {reason timeout_id sock command} {
 #   for transmission to the SOCKS 5 server.
 #
 proc ::socks5::FormatAddress {host port} {
-    if {[regexp -- {^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$} $host]} {
+    if {[::ip::is 4 $host]} {
         set parts [split $host .]
         set result [binary format cccccS 1 {*}$parts $port]
+    } elseif {[::ip::is 6 $host]} {
+        set parts [split [::ip::normalize $host] :] 
+        set result [binary format cH4H4H4H4H4H4H4H4S 4 {*}$parts $port]
     } else {
         if {[string length $host] > 255} {
             return -code -1 "host must be 255 characters or less"
@@ -298,6 +302,10 @@ proc ::socks5::ReadResponse {sock} {
         set host [read $sock $len]
         set port [binary scan S [read $sock 2]]
         set result [list $host $port]
+    } elseif {$addr_type == 4} {
+        set rsp [read $sock 18]
+        binary scan $rsp "H4H4H4H4H4H4H4H4Su" ip1 ip2 ip3 ip4 ip5 ip6 ip7 ip8 port
+        set result [list "${ip1}:${ip2}:${ip3}:${ip4}:${ip5}:${ip6}:${ip7}:${ip8}" $port]
     } else {
         return -code -1 "invalid address type from proxy: $addr_type"
     }
@@ -357,7 +365,7 @@ proc ::socks5::ProxyConnect { argsVar } {
 
     if {$Config(username) != {} || $Config(password) != {}} {
         incr numMethods
-        lappend methods 5
+        lappend methods 2
     }
 
     puts -nonewline $sock [binary format ccc* 5 $numMethods $methods]
@@ -376,7 +384,7 @@ proc ::socks5::ProxyConnect { argsVar } {
     } elseif {$method == 255} {
         chan close $sock
         return -code -1 "unsupported method from proxy: $MethodCodes($method) ($method)"
-    } elseif {$method == 5} {
+    } elseif {$method == 2} {
         PerformUserPassAuth $sock
     }
 
@@ -398,19 +406,17 @@ proc ::socks5::ProxyConnect { argsVar } {
 proc ::socks5::PerformUserPassAuth {sock} {
     variable Config
 
-    if {[string length $Config(username)] > 255]} {
+    if {[string length $Config(username)] > 255} {
         chan close $sock
         return -code -1 "username must be 255 characters or less"
     }
 
-    if {[string length $Config(password)] > 255]} {
+    if {[string length $Config(password)] > 255} {
         chan close $sock
         return -code -1 "password must be 255 characters or less"
     }
 
-    puts -nonewline $sock [binary scan cca*ca* 1 \
-        [string length $Config(username)] $Config(username) \
-        [string length $Config(password)] $Config(password)]
+    puts -nonewline $sock [binary format cca*ca* 1 [string length $Config(username)] $Config(username) [string length $Config(password)] $Config(password)]
     flush $sock
 
     set rsp [read $sock 2]
@@ -419,7 +425,7 @@ proc ::socks5::PerformUserPassAuth {sock} {
         return -code -1 "unable to read auth response from proxy"
     }
 
-    binary scan cc $rsp version reply
+    binary scan $rsp cc version reply
     if {$version != 1} {
         chan close $sock
         return -code -1 "unsupported username/password auth version ($version)"
